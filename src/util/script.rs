@@ -5,7 +5,7 @@ use bitcoin_bech32::constants::Network as B32Network;
 use bitcoin_bech32::{self, u5};
 use bitcoin_hashes::{hash160::Hash as Hash160, Hash};
 
-#[cfg(feature = "liquid")]
+#[cfg(feature = "ocean")]
 use elements::address as elements_address;
 
 use crate::chain::Network;
@@ -19,9 +19,9 @@ pub struct InnerScripts {
 pub fn script_to_address(script: &Script, network: &Network) -> Option<String> {
     // rust-elements provides an Address::from_script() utility that's not yet
     // available in rust-bitcoin, but should be soon
-    #[cfg(feature = "liquid")]
+    #[cfg(feature = "ocean")]
     match network {
-        Network::Liquid | Network::LiquidRegtest => {
+        Network::Ocean | Network::OceanRegtest => {
             return elements_address::Address::from_script(script, None, network.address_params())
                 .map(|a| a.to_string())
         }
@@ -83,7 +83,7 @@ pub fn get_innerscripts(txin: &TxIn, prevout: &TxOut) -> InnerScripts {
         || redeem_script.as_ref().map_or(false, |s| s.is_v0_p2wsh())
     {
         let witness = &txin.witness;
-        #[cfg(feature = "liquid")]
+        #[cfg(feature = "ocean")]
         let witness = &witness.script_witness;
         witness.iter().last().cloned().map(Script::from)
     } else {

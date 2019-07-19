@@ -43,7 +43,7 @@ extern crate serde_derive;
 #[macro_use]
 extern crate serde_json;
 
-#[cfg(feature = "liquid")]
+#[cfg(feature = "ocean")]
 #[macro_use]
 extern crate lazy_static;
 
@@ -58,5 +58,5 @@ pub mod rest;
 pub mod signal;
 pub mod util;
 
-#[cfg(feature = "liquid")]
+#[cfg(feature = "ocean")]
 pub mod elements;

@@ -7,7 +7,7 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use stderrlog;
 
-#[cfg(feature = "liquid")]
+#[cfg(feature = "ocean")]
 use bitcoin_hashes::hex::ToHex;
 
 use crate::chain::Network;
@@ -35,11 +35,11 @@ pub struct Config {
     pub cors: Option<String>,
     pub precache_scripts: Option<String>,
 
-    #[cfg(feature = "liquid")]
+    #[cfg(feature = "ocean")]
     pub parent_network: Network,
-    #[cfg(feature = "liquid")]
+    #[cfg(feature = "ocean")]
     pub parent_genesis_hash: String,
-    #[cfg(feature = "liquid")]
+    #[cfg(feature = "ocean")]
     pub asset_db_path: Option<PathBuf>,
 }
 
@@ -152,7 +152,7 @@ impl Config {
                     .takes_value(true)
             );
 
-        #[cfg(feature = "liquid")]
+        #[cfg(feature = "ocean")]
         let args = args
             .arg(
                 Arg::with_name("parent_network")
@@ -163,7 +163,7 @@ impl Config {
             .arg(
                 Arg::with_name("asset_db_path")
                     .long("asset-db-path")
-                    .help("Directory for liquid/elements asset db")
+                    .help("Directory for ocean/elements asset db")
                     .takes_value(true),
             );
 
@@ -174,11 +174,11 @@ impl Config {
         let db_dir = Path::new(m.value_of("db_dir").unwrap_or("./db"));
         let db_path = db_dir.join(network_name);
 
-        #[cfg(feature = "liquid")]
+        #[cfg(feature = "ocean")]
         let parent_network = Network::from(m.value_of("parent_network").unwrap_or("mainnet"));
-        #[cfg(feature = "liquid")]
+        #[cfg(feature = "ocean")]
         let parent_genesis_hash = parent_network.genesis_hash().to_hex();
-        #[cfg(feature = "liquid")]
+        #[cfg(feature = "ocean")]
         let asset_db_path = m.value_of("asset_db_path").map(PathBuf::from);
 
         let default_daemon_port = match network_type {
@@ -186,40 +186,40 @@ impl Config {
             Network::Testnet => 18332,
             Network::Regtest => 18443,
 
-            #[cfg(feature = "liquid")]
-            Network::Liquid => 7041,
-            #[cfg(feature = "liquid")]
-            Network::LiquidRegtest => 7041,
+            #[cfg(feature = "ocean")]
+            Network::Ocean => 7041,
+            #[cfg(feature = "ocean")]
+            Network::OceanRegtest => 7041,
         };
         let default_electrum_port = match network_type {
             Network::Bitcoin => 50001,
             Network::Testnet => 60001,
             Network::Regtest => 60401,
 
-            #[cfg(feature = "liquid")]
-            Network::Liquid => 51000,
-            #[cfg(feature = "liquid")]
-            Network::LiquidRegtest => 51401,
+            #[cfg(feature = "ocean")]
+            Network::Ocean => 51000,
+            #[cfg(feature = "ocean")]
+            Network::OceanRegtest => 51401,
         };
         let default_http_port = match network_type {
             Network::Bitcoin => 3000,
             Network::Testnet => 3001,
             Network::Regtest => 3002,
 
-            #[cfg(feature = "liquid")]
-            Network::Liquid => 3000,
-            #[cfg(feature = "liquid")]
-            Network::LiquidRegtest => 3002,
+            #[cfg(feature = "ocean")]
+            Network::Ocean => 3000,
+            #[cfg(feature = "ocean")]
+            Network::OceanRegtest => 3002,
         };
         let default_monitoring_port = match network_type {
             Network::Bitcoin => 4224,
             Network::Testnet => 14224,
             Network::Regtest => 24224,
 
-            #[cfg(feature = "liquid")]
-            Network::Liquid => 34224,
-            #[cfg(feature = "liquid")]
-            Network::LiquidRegtest => 44224,
+            #[cfg(feature = "ocean")]
+            Network::Ocean => 34224,
+            #[cfg(feature = "ocean")]
+            Network::OceanRegtest => 44224,
         };
 
         let daemon_rpc_addr: SocketAddr = m
@@ -256,10 +256,10 @@ impl Config {
             Network::Testnet => daemon_dir.push("testnet3"),
             Network::Regtest => daemon_dir.push("regtest"),
 
-            #[cfg(feature = "liquid")]
-            Network::Liquid => daemon_dir.push("liquidv1"),
-            #[cfg(feature = "liquid")]
-            Network::LiquidRegtest => daemon_dir.push("liquidregtest"),
+            #[cfg(feature = "ocean")]
+            Network::Ocean => daemon_dir.push("gold_main"),
+            #[cfg(feature = "ocean")]
+            Network::OceanRegtest => daemon_dir.push("oceanregtest"),
         }
         let cookie = m.value_of("cookie").map(|s| s.to_owned());
 
@@ -292,11 +292,11 @@ impl Config {
             prevout_enabled: !m.is_present("disable_prevout"),
             cors: m.value_of("cors").map(|s| s.to_string()),
             precache_scripts: m.value_of("precache_scripts").map(|s| s.to_string()),
-            #[cfg(feature = "liquid")]
+            #[cfg(feature = "ocean")]
             parent_network,
-            #[cfg(feature = "liquid")]
+            #[cfg(feature = "ocean")]
             parent_genesis_hash,
-            #[cfg(feature = "liquid")]
+            #[cfg(feature = "ocean")]
             asset_db_path,
         };
         eprintln!("{:?}", config);

@@ -13,7 +13,7 @@ edition = "2018"
 
 [features]
 default = []
-liquid = ["elements", "lazy_static"]
+ocean = ["elements", "lazy_static"]
 
 [dependencies]
 arraydeque = "0.4"
@@ -63,9 +63,9 @@ features = ["serde"]
 [patch.crates-io]
 bitcoin_hashes = { git = "https://github.com/rust-bitcoin/bitcoin_hashes", rev = "803b5fb48b9c949cbfbb548a7032e8d9b3213c97" }
 [dependencies.elements]
+package = "rust-ocean"
+git = "https://github.com/commerceblock/rust-ocean"
 optional = true
-git = "https://github.com/elementsproject/rust-elements"
-rev = "ae548a4748508775653a65daa828bb5a0207a325"
 features = ["serde-feature"]
 
 [dev-dependencies]

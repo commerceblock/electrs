@@ -21,7 +21,7 @@ use electrs::{
     signal::Waiter,
 };
 
-#[cfg(feature = "liquid")]
+#[cfg(feature = "ocean")]
 use electrs::elements::AssetRegistry;
 
 fn fetch_from(config: &Config, store: &Store) -> FetchFrom {
@@ -64,7 +64,7 @@ fn run_server(config: Arc<Config>) -> Result<()> {
     let mempool = Arc::new(RwLock::new(Mempool::new(Arc::clone(&chain), &metrics)));
     mempool.write().unwrap().update(&daemon)?;
 
-    #[cfg(feature = "liquid")]
+    #[cfg(feature = "ocean")]
     let asset_db = config
         .asset_db_path
         .as_ref()
@@ -74,7 +74,7 @@ fn run_server(config: Arc<Config>) -> Result<()> {
         Arc::clone(&chain),
         Arc::clone(&mempool),
         Arc::clone(&daemon),
-        #[cfg(feature = "liquid")]
+        #[cfg(feature = "ocean")]
         asset_db,
     ));
 

@@ -17,7 +17,7 @@ use hyper::rt::{self, Future, Stream};
 use hyper::service::service_fn;
 use hyper::{Body, Method, Request, Response, Server, StatusCode};
 
-#[cfg(feature = "liquid")]
+#[cfg(feature = "ocean")]
 use {
     crate::elements::{BlockProofValue, IssuanceValue, PegOutRequest},
     elements::confidential::{Asset, Value},
@@ -51,11 +51,11 @@ struct BlockValue {
     weight: u32,
     merkle_root: String,
     previousblockhash: Option<String>,
-    #[cfg(not(feature = "liquid"))]
+    #[cfg(not(feature = "ocean"))]
     nonce: u32,
-    #[cfg(not(feature = "liquid"))]
+    #[cfg(not(feature = "ocean"))]
     bits: u32,
-    #[cfg(feature = "liquid")]
+    #[cfg(feature = "ocean")]
     #[serde(skip_serializing_if = "Option::is_none")]
     proof: Option<BlockProofValue>,
 }
@@ -78,12 +78,12 @@ impl From<BlockHeaderMeta> for BlockValue {
                 None
             },
 
-            #[cfg(not(feature = "liquid"))]
+            #[cfg(not(feature = "ocean"))]
             bits: header.bits,
-            #[cfg(not(feature = "liquid"))]
+            #[cfg(not(feature = "ocean"))]
             nonce: header.nonce,
 
-            #[cfg(feature = "liquid")]
+            #[cfg(feature = "ocean")]
             proof: Some(BlockProofValue::from(&header.proof)),
         }
     }
@@ -126,7 +126,7 @@ impl TransactionValue {
             .collect();
         let bytes = serialize(&tx);
 
-        #[cfg(not(feature = "liquid"))]
+        #[cfg(not(feature = "ocean"))]
         let fee = if config.prevout_enabled && !vins.iter().any(|vin| vin.prevout.is_none()) {
             let total_in: u64 = vins
                 .iter()
@@ -138,7 +138,7 @@ impl TransactionValue {
             None
         };
 
-        #[cfg(feature = "liquid")]
+        #[cfg(feature = "ocean")]
         let fee = vouts
             .iter()
             .find(|vout| vout.scriptpubkey_type == "fee")
@@ -176,9 +176,9 @@ struct TxInValue {
     #[serde(skip_serializing_if = "Option::is_none")]
     inner_witnessscript_asm: Option<String>,
 
-    #[cfg(feature = "liquid")]
+    #[cfg(feature = "ocean")]
     is_pegin: bool,
-    #[cfg(feature = "liquid")]
+    #[cfg(feature = "ocean")]
     #[serde(skip_serializing_if = "Option::is_none")]
     issuance: Option<IssuanceValue>,
 }
@@ -186,7 +186,7 @@ struct TxInValue {
 impl TxInValue {
     fn new(txin: &TxIn, prevout: Option<&TxOut>, config: &Config) -> Self {
         let witness = &txin.witness;
-        #[cfg(feature = "liquid")]
+        #[cfg(feature = "ocean")]
         let witness = &witness.script_witness;
 
         let witness = if !witness.is_empty() {
@@ -217,9 +217,9 @@ impl TxInValue {
 
             is_coinbase,
             sequence: txin.sequence,
-            #[cfg(feature = "liquid")]
+            #[cfg(feature = "ocean")]
             is_pegin: txin.is_pegin,
-            #[cfg(feature = "liquid")]
+            #[cfg(feature = "ocean")]
             issuance: if txin.has_issuance() {
                 Some(IssuanceValue::from(txin))
             } else {
@@ -240,59 +240,59 @@ struct TxOutValue {
     #[serde(skip_serializing_if = "Option::is_none")]
     scriptpubkey_address: Option<String>,
 
-    #[cfg(not(feature = "liquid"))]
+    #[cfg(not(feature = "ocean"))]
     value: u64,
 
-    #[cfg(feature = "liquid")]
+    #[cfg(feature = "ocean")]
     #[serde(skip_serializing_if = "Option::is_none")]
     value: Option<u64>,
 
-    #[cfg(feature = "liquid")]
+    #[cfg(feature = "ocean")]
     #[serde(skip_serializing_if = "Option::is_none")]
     valuecommitment: Option<String>,
 
-    #[cfg(feature = "liquid")]
+    #[cfg(feature = "ocean")]
     #[serde(skip_serializing_if = "Option::is_none")]
     asset: Option<String>,
 
-    #[cfg(feature = "liquid")]
+    #[cfg(feature = "ocean")]
     #[serde(skip_serializing_if = "Option::is_none")]
     assetcommitment: Option<String>,
 
-    #[cfg(feature = "liquid")]
+    #[cfg(feature = "ocean")]
     #[serde(skip_serializing_if = "Option::is_none")]
     pegout: Option<PegOutRequest>,
 }
 
 impl TxOutValue {
     fn new(txout: &TxOut, config: &Config) -> Self {
-        #[cfg(not(feature = "liquid"))]
+        #[cfg(not(feature = "ocean"))]
         let value = txout.value;
 
-        #[cfg(feature = "liquid")]
+        #[cfg(feature = "ocean")]
         let value = match txout.value {
             Value::Explicit(value) => Some(value),
             _ => None,
         };
-        #[cfg(feature = "liquid")]
+        #[cfg(feature = "ocean")]
         let valuecommitment = match txout.value {
             Value::Confidential(..) => Some(hex::encode(serialize(&txout.value))),
             _ => None,
         };
-        #[cfg(feature = "liquid")]
+        #[cfg(feature = "ocean")]
         let asset = match txout.asset {
             Asset::Explicit(value) => Some(value.to_hex()),
             _ => None,
         };
-        #[cfg(feature = "liquid")]
+        #[cfg(feature = "ocean")]
         let assetcommitment = match txout.asset {
             Asset::Confidential(..) => Some(hex::encode(serialize(&txout.asset))),
             _ => None,
         };
 
-        #[cfg(not(feature = "liquid"))]
+        #[cfg(not(feature = "ocean"))]
         let is_fee = false;
-        #[cfg(feature = "liquid")]
+        #[cfg(feature = "ocean")]
         let is_fee = txout.is_fee();
 
         let script = &txout.script_pubkey;
@@ -322,7 +322,7 @@ impl TxOutValue {
             "unknown"
         };
 
-        #[cfg(feature = "liquid")]
+        #[cfg(feature = "ocean")]
         let pegout =
             PegOutRequest::parse(&script, &config.parent_network, &config.parent_genesis_hash);
 
@@ -332,13 +332,13 @@ impl TxOutValue {
             scriptpubkey_address: script_addr,
             scriptpubkey_type: script_type.to_string(),
             value,
-            #[cfg(feature = "liquid")]
+            #[cfg(feature = "ocean")]
             valuecommitment,
-            #[cfg(feature = "liquid")]
+            #[cfg(feature = "ocean")]
             asset,
-            #[cfg(feature = "liquid")]
+            #[cfg(feature = "ocean")]
             assetcommitment,
-            #[cfg(feature = "liquid")]
+            #[cfg(feature = "ocean")]
             pegout,
         }
     }
@@ -350,22 +350,22 @@ struct UtxoValue {
     vout: u32,
     status: TransactionStatus,
 
-    #[cfg(not(feature = "liquid"))]
+    #[cfg(not(feature = "ocean"))]
     value: u64,
 
-    #[cfg(feature = "liquid")]
+    #[cfg(feature = "ocean")]
     #[serde(skip_serializing_if = "Option::is_none")]
     value: Option<u64>,
 
-    #[cfg(feature = "liquid")]
+    #[cfg(feature = "ocean")]
     #[serde(skip_serializing_if = "Option::is_none")]
     valuecommitment: Option<String>,
 
-    #[cfg(feature = "liquid")]
+    #[cfg(feature = "ocean")]
     #[serde(skip_serializing_if = "Option::is_none")]
     asset: Option<String>,
 
-    #[cfg(feature = "liquid")]
+    #[cfg(feature = "ocean")]
     #[serde(skip_serializing_if = "Option::is_none")]
     assetcommitment: Option<String>,
 }
@@ -376,25 +376,25 @@ impl From<Utxo> for UtxoValue {
             vout: utxo.vout,
             status: TransactionStatus::from(utxo.confirmed),
 
-            #[cfg(not(feature = "liquid"))]
+            #[cfg(not(feature = "ocean"))]
             value: utxo.value,
 
-            #[cfg(feature = "liquid")]
+            #[cfg(feature = "ocean")]
             value: match utxo.value {
                 Value::Explicit(value) => Some(value),
                 _ => None,
             },
-            #[cfg(feature = "liquid")]
+            #[cfg(feature = "ocean")]
             valuecommitment: match utxo.value {
                 Value::Confidential(..) => Some(hex::encode(serialize(&utxo.value))),
                 _ => None,
             },
-            #[cfg(feature = "liquid")]
+            #[cfg(feature = "ocean")]
             asset: match utxo.asset {
                 Asset::Explicit(asset) => Some(asset.to_hex()),
                 _ => None,
             },
-            #[cfg(feature = "liquid")]
+            #[cfg(feature = "ocean")]
             assetcommitment: match utxo.asset {
                 Asset::Confidential(..) => Some(hex::encode(serialize(&utxo.asset))),
                 _ => None,
@@ -892,7 +892,7 @@ fn handle_request(
             json_response(query.estimate_fee_targets(), TTL_SHORT)
         }
 
-        #[cfg(feature = "liquid")]
+        #[cfg(feature = "ocean")]
         (&Method::GET, Some(&"asset"), Some(asset_str), None, None, None) => {
             let asset_id = Sha256dHash::from_hex(asset_str)?;
             let asset_entry = query
@@ -902,7 +902,7 @@ fn handle_request(
             json_response(asset_entry, TTL_SHORT)
         }
 
-        #[cfg(feature = "liquid")]
+        #[cfg(feature = "ocean")]
         (&Method::GET, Some(&"asset"), Some(asset_str), Some(&"txs"), None, None) => {
             let asset_id = Sha256dHash::from_hex(asset_str)?;
 
@@ -927,7 +927,7 @@ fn handle_request(
             json_response(prepare_txs(txs, query, config), TTL_SHORT)
         }
 
-        #[cfg(feature = "liquid")]
+        #[cfg(feature = "ocean")]
         (
             &Method::GET,
             Some(&"asset"),
@@ -949,7 +949,7 @@ fn handle_request(
             json_response(prepare_txs(txs, query, config), TTL_SHORT)
         }
 
-        #[cfg(feature = "liquid")]
+        #[cfg(feature = "ocean")]
         (&Method::GET, Some(&"asset"), Some(asset_str), Some(&"txs"), Some(&"mempool"), None) => {
             let asset_id = Sha256dHash::from_hex(asset_str)?;
 
@@ -1015,7 +1015,7 @@ fn blocks(query: &Query, start_height: Option<usize>) -> Result<Response<Body>, 
         #[allow(unused_mut)]
         let mut value = BlockValue::from(blockhm);
 
-        #[cfg(feature = "liquid")]
+        #[cfg(feature = "ocean")]
         {
             // exclude proof in block list view
             value.proof = None;
@@ -1041,18 +1041,18 @@ fn to_scripthash(
     }
 }
 
-#[allow(unused_variables)] // `network` is unused in liquid mode
+#[allow(unused_variables)] // `network` is unused in ocean mode
 fn address_to_scripthash(addr: &str, network: &Network) -> Result<FullHash, HttpError> {
     let addr = address::Address::from_str(addr)?;
 
-    #[cfg(not(feature = "liquid"))]
+    #[cfg(not(feature = "ocean"))]
     let is_expected_net = {
         let addr_network = Network::from(&addr.network);
         (addr_network == *network
             || (addr_network == Network::Testnet && *network == Network::Regtest))
     };
 
-    #[cfg(feature = "liquid")]
+    #[cfg(feature = "ocean")]
     let is_expected_net = addr.params == network.address_params();
 
     if !is_expected_net {
@@ -1135,7 +1135,7 @@ impl From<std::string::FromUtf8Error> for HttpError {
     }
 }
 
-#[cfg(feature = "liquid")]
+#[cfg(feature = "ocean")]
 impl From<address::AddressError> for HttpError {
     fn from(e: address::AddressError) -> Self {
         HttpError::from(e.to_string())

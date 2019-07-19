@@ -1,11 +1,11 @@
-#[cfg(not(feature = "liquid"))]
+#[cfg(not(feature = "ocean"))]
 pub use bitcoin::util::address;
-#[cfg(not(feature = "liquid"))] // use regular Bitcoin data structures
+#[cfg(not(feature = "ocean"))] // use regular Bitcoin data structures
 pub use bitcoin::{Block, BlockHeader, OutPoint, Transaction, TxIn, TxOut};
 
-#[cfg(feature = "liquid")]
+#[cfg(feature = "ocean")]
 pub use elements::address;
-#[cfg(feature = "liquid")]
+#[cfg(feature = "ocean")]
 pub use elements::{confidential, Address, Block, BlockHeader, OutPoint, Transaction, TxIn, TxOut};
 
 use bitcoin::blockdata::constants::genesis_block;
@@ -14,9 +14,9 @@ use bitcoin::util::hash::BitcoinHash;
 use bitcoin_bech32::constants::Network as B32Network;
 use bitcoin_hashes::sha256d::Hash as Sha256dHash;
 
-#[cfg(not(feature = "liquid"))]
+#[cfg(not(feature = "ocean"))]
 pub type Value = u64;
-#[cfg(feature = "liquid")]
+#[cfg(feature = "ocean")]
 pub use confidential::Value;
 
 #[derive(Debug, Copy, Clone, PartialEq, Hash, Serialize, Ord, PartialOrd, Eq)]
@@ -25,10 +25,10 @@ pub enum Network {
     Testnet,
     Regtest,
 
-    #[cfg(feature = "liquid")]
-    Liquid,
-    #[cfg(feature = "liquid")]
-    LiquidRegtest,
+    #[cfg(feature = "ocean")]
+    Ocean,
+    #[cfg(feature = "ocean")]
+    OceanRegtest,
 }
 
 impl Network {
@@ -43,38 +43,38 @@ impl Network {
             Network::Testnet => 0x0709110B,
             Network::Regtest => 0xDAB5BFFA,
 
-            #[cfg(feature = "liquid")]
-            Network::Liquid => 0xDAB5BFFA,
-            #[cfg(feature = "liquid")]
-            Network::LiquidRegtest => 0xDAB5BFFA,
+            #[cfg(feature = "ocean")]
+            Network::Ocean => 0xDAB5BFFA,
+            #[cfg(feature = "ocean")]
+            Network::OceanRegtest => 0xDAB5BFFA,
         }
     }
 
-    #[cfg(feature = "liquid")]
+    #[cfg(feature = "ocean")]
     pub fn address_params(&self) -> &'static address::AddressParams {
-        // Liquid regtest uses elements's address params
+        // ocean regtest uses elements's address params
         match self {
-            Network::Liquid => &address::AddressParams::LIQUID,
-            Network::LiquidRegtest => &address::AddressParams::ELEMENTS,
-            _ => panic!("the liquid-only address_params() called with non-liquid network"),
+            Network::Ocean => &address::AddressParams::OCEAN,
+            Network::OceanRegtest => &address::AddressParams::ELEMENTS,
+            _ => panic!("the ocean-only address_params() called with non-ocean network"),
         }
     }
 
     pub fn names() -> Vec<String> {
-        #[cfg(not(feature = "liquid"))]
+        #[cfg(not(feature = "ocean"))]
         return vec![
             "mainnet".to_string(),
             "testnet".to_string(),
             "regtest".to_string(),
         ];
 
-        #[cfg(feature = "liquid")]
+        #[cfg(feature = "ocean")]
         return vec![
             "mainnet".to_string(),
             "testnet".to_string(),
             "regtest".to_string(),
-            "liquid".to_string(),
-            "liquidregtest".to_string(),
+            "ocean".to_string(),
+            "oceanregtest".to_string(),
         ];
     }
 }
@@ -86,10 +86,10 @@ impl From<&str> for Network {
             "testnet" => Network::Testnet,
             "regtest" => Network::Regtest,
 
-            #[cfg(feature = "liquid")]
-            "liquid" => Network::Liquid,
-            #[cfg(feature = "liquid")]
-            "liquidregtest" => Network::LiquidRegtest,
+            #[cfg(feature = "ocean")]
+            "ocean" => Network::Ocean,
+            #[cfg(feature = "ocean")]
+            "oceanregtest" => Network::OceanRegtest,
 
             _ => panic!("unsupported Bitcoin network: {:?}", network_name),
         }
@@ -103,10 +103,10 @@ impl From<&Network> for BNetwork {
             Network::Testnet => BNetwork::Testnet,
             Network::Regtest => BNetwork::Regtest,
 
-            #[cfg(feature = "liquid")]
-            Network::Liquid => BNetwork::Bitcoin, // @FIXME
-            #[cfg(feature = "liquid")]
-            Network::LiquidRegtest => BNetwork::Regtest, // @FIXME
+            #[cfg(feature = "ocean")]
+            Network::Ocean => BNetwork::Bitcoin, // @FIXME
+            #[cfg(feature = "ocean")]
+            Network::OceanRegtest => BNetwork::Regtest, // @FIXME
         }
     }
 }
@@ -117,10 +117,10 @@ impl From<&Network> for B32Network {
             Network::Bitcoin => B32Network::Bitcoin,
             Network::Testnet => B32Network::Testnet,
             Network::Regtest => B32Network::Regtest,
-            #[cfg(feature = "liquid")]
-            Network::Liquid => B32Network::Bitcoin, // @FIXME
-            #[cfg(feature = "liquid")]
-            Network::LiquidRegtest => B32Network::Regtest, // @FIXME
+            #[cfg(feature = "ocean")]
+            Network::Ocean => B32Network::Bitcoin, // @FIXME
+            #[cfg(feature = "ocean")]
+            Network::OceanRegtest => B32Network::Regtest, // @FIXME
         }
     }
 }
@@ -128,15 +128,15 @@ impl From<&Network> for B32Network {
 impl From<&BNetwork> for Network {
     fn from(network: &BNetwork) -> Self {
         match network {
-            #[cfg(not(feature = "liquid"))]
+            #[cfg(not(feature = "ocean"))]
             BNetwork::Bitcoin => Network::Bitcoin,
-            #[cfg(not(feature = "liquid"))]
+            #[cfg(not(feature = "ocean"))]
             BNetwork::Regtest => Network::Regtest,
 
-            #[cfg(feature = "liquid")]
-            BNetwork::Bitcoin => Network::Liquid, // @FIXME
-            #[cfg(feature = "liquid")]
-            BNetwork::Regtest => Network::LiquidRegtest, // @FIXME
+            #[cfg(feature = "ocean")]
+            BNetwork::Bitcoin => Network::Ocean, // @FIXME
+            #[cfg(feature = "ocean")]
+            BNetwork::Regtest => Network::OceanRegtest, // @FIXME
             BNetwork::Testnet => Network::Testnet, // @FIXME
         }
     }

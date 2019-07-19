@@ -11,7 +11,7 @@ use crate::errors::*;
 use crate::new_index::{ChainQuery, Mempool, ScriptStats, SpendingInput, Utxo};
 use crate::util::{is_spendable, BlockId, Bytes, TransactionStatus};
 
-#[cfg(feature = "liquid")]
+#[cfg(feature = "ocean")]
 use crate::elements::{lookup_asset, AssetEntry, AssetRegistry};
 
 const FEE_ESTIMATES_TTL: u64 = 60; // seconds
@@ -26,12 +26,12 @@ pub struct Query {
     daemon: Arc<Daemon>,
     cached_estimates: RwLock<Option<(HashMap<u16, f32>, Instant)>>,
 
-    #[cfg(feature = "liquid")]
+    #[cfg(feature = "ocean")]
     asset_db: Option<AssetRegistry>,
 }
 
 impl Query {
-    #[cfg(not(feature = "liquid"))]
+    #[cfg(not(feature = "ocean"))]
     pub fn new(chain: Arc<ChainQuery>, mempool: Arc<RwLock<Mempool>>, daemon: Arc<Daemon>) -> Self {
         Query {
             chain,
@@ -162,7 +162,7 @@ impl Query {
         fresh
     }
 
-    #[cfg(feature = "liquid")]
+    #[cfg(feature = "ocean")]
     pub fn new(
         chain: Arc<ChainQuery>,
         mempool: Arc<RwLock<Mempool>>,
@@ -178,7 +178,7 @@ impl Query {
         }
     }
 
-    #[cfg(feature = "liquid")]
+    #[cfg(feature = "ocean")]
     pub fn lookup_asset(&self, asset_id: &Sha256dHash) -> Result<Option<AssetEntry>> {
         lookup_asset(&self, self.asset_db.as_ref(), asset_id)
     }
