@@ -9,10 +9,9 @@ pub use elements::address;
 pub use elements::{confidential, Address, Block, BlockHeader, OutPoint, Transaction, TxIn, TxOut};
 
 use bitcoin::blockdata::constants::genesis_block;
+use bitcoin::hashes::sha256d::Hash as Sha256dHash;
 use bitcoin::network::constants::Network as BNetwork;
 use bitcoin::util::hash::BitcoinHash;
-use bitcoin_bech32::constants::Network as B32Network;
-use bitcoin_hashes::sha256d::Hash as Sha256dHash;
 
 #[cfg(not(feature = "ocean"))]
 pub type Value = u64;
@@ -107,20 +106,6 @@ impl From<&Network> for BNetwork {
             Network::Ocean => BNetwork::Bitcoin, // @FIXME
             #[cfg(feature = "ocean")]
             Network::OceanRegtest => BNetwork::Regtest, // @FIXME
-        }
-    }
-}
-
-impl From<&Network> for B32Network {
-    fn from(network: &Network) -> Self {
-        match network {
-            Network::Bitcoin => B32Network::Bitcoin,
-            Network::Testnet => B32Network::Testnet,
-            Network::Regtest => B32Network::Regtest,
-            #[cfg(feature = "ocean")]
-            Network::Ocean => B32Network::Bitcoin, // @FIXME
-            #[cfg(feature = "ocean")]
-            Network::OceanRegtest => B32Network::Regtest, // @FIXME
         }
     }
 }

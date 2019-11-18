@@ -1,8 +1,8 @@
 use bitcoin::blockdata::script::Instruction::PushBytes;
-use bitcoin::consensus::encode::serialize;
+use bitcoin::hashes::hex::ToHex;
 use bitcoin::Script;
-use bitcoin_hashes::hex::ToHex;
 use elements::confidential::Value;
+use elements::encode::serialize;
 use elements::{Proof, TxIn};
 use hex;
 
@@ -14,7 +14,7 @@ mod assetid;
 mod registry;
 
 use asset::get_issuance_entropy;
-pub use asset::{lookup_asset, AssetEntry};
+pub use asset::{lookup_asset, LiquidAsset};
 pub use assetid::AssetId;
 pub use registry::AssetRegistry;
 
@@ -139,7 +139,8 @@ impl From<&TxIn> for IssuanceValue {
             },
             assetamount: match issuance.amount {
                 Value::Explicit(value) => Some(value),
-                _ => None,
+                Value::Null => Some(0),
+                Value::Confidential(..) => None,
             },
             assetamountcommitment: match issuance.amount {
                 Value::Confidential(..) => Some(hex::encode(serialize(&issuance.amount))),
@@ -147,7 +148,8 @@ impl From<&TxIn> for IssuanceValue {
             },
             tokenamount: match issuance.inflation_keys {
                 Value::Explicit(value) => Some(value),
-                _ => None,
+                Value::Null => Some(0),
+                Value::Confidential(..) => None,
             },
             tokenamountcommitment: match issuance.inflation_keys {
                 Value::Confidential(..) => Some(hex::encode(serialize(&issuance.inflation_keys))),

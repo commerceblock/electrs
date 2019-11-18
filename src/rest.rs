@@ -7,10 +7,11 @@ use crate::util::{
     script_to_address, BlockHeaderMeta, BlockId, FullHash, TransactionStatus,
 };
 
-use bitcoin::consensus::encode::{self, serialize};
+#[cfg(not(feature = "ocean"))]
+use bitcoin::consensus::encode;
+use bitcoin::hashes::hex::{FromHex, ToHex};
+use bitcoin::hashes::{sha256d::Hash as Sha256dHash, Error as HashError};
 use bitcoin::{BitcoinHash, Script};
-use bitcoin_hashes::hex::{FromHex, ToHex};
-use bitcoin_hashes::{sha256d::Hash as Sha256dHash, Error as HashError};
 use futures::sync::oneshot;
 use hex::{self, FromHexError};
 use hyper::rt::{self, Future, Stream};
@@ -21,6 +22,7 @@ use hyper::{Body, Method, Request, Response, Server, StatusCode};
 use {
     crate::elements::{BlockProofValue, IssuanceValue, PegOutRequest},
     elements::confidential::{Asset, Value},
+    elements::encode,
 };
 
 use serde::Serialize;
@@ -124,7 +126,7 @@ impl TransactionValue {
             .iter()
             .map(|txout| TxOutValue::new(txout, config))
             .collect();
-        let bytes = serialize(&tx);
+        let bytes = encode::serialize(&tx);
 
         #[cfg(not(feature = "ocean"))]
         let fee = if config.prevout_enabled && !vins.iter().any(|vin| vin.prevout.is_none()) {
@@ -276,7 +278,7 @@ impl TxOutValue {
         };
         #[cfg(feature = "ocean")]
         let valuecommitment = match txout.value {
-            Value::Confidential(..) => Some(hex::encode(serialize(&txout.value))),
+            Value::Confidential(..) => Some(hex::encode(encode::serialize(&txout.value))),
             _ => None,
         };
         #[cfg(feature = "ocean")]
@@ -286,7 +288,7 @@ impl TxOutValue {
         };
         #[cfg(feature = "ocean")]
         let assetcommitment = match txout.asset {
-            Asset::Confidential(..) => Some(hex::encode(serialize(&txout.asset))),
+            Asset::Confidential(..) => Some(hex::encode(encode::serialize(&txout.asset))),
             _ => None,
         };
 
@@ -386,7 +388,7 @@ impl From<Utxo> for UtxoValue {
             },
             #[cfg(feature = "ocean")]
             valuecommitment: match utxo.value {
-                Value::Confidential(..) => Some(hex::encode(serialize(&utxo.value))),
+                Value::Confidential(..) => Some(hex::encode(encode::serialize(&utxo.value))),
                 _ => None,
             },
             #[cfg(feature = "ocean")]
@@ -396,7 +398,7 @@ impl From<Utxo> for UtxoValue {
             },
             #[cfg(feature = "ocean")]
             assetcommitment: match utxo.asset {
-                Asset::Confidential(..) => Some(hex::encode(serialize(&utxo.asset))),
+                Asset::Confidential(..) => Some(hex::encode(encode::serialize(&utxo.asset))),
                 _ => None,
             },
         }
@@ -605,6 +607,18 @@ fn handle_request(
                 .get_block_txids(&hash)
                 .ok_or_else(|| HttpError::not_found("Block not found".to_string()))?;
             json_response(txids, TTL_LONG)
+        }
+        (&Method::GET, Some(&"block"), Some(hash), Some(&"txid"), Some(index), None) => {
+            let hash = Sha256dHash::from_hex(hash)?;
+            let index: usize = index.parse()?;
+            let txids = query
+                .chain()
+                .get_block_txids(&hash)
+                .ok_or_else(|| HttpError::not_found("Block not found".to_string()))?;
+            if index >= txids.len() {
+                bail!(HttpError::not_found("tx index out of range".to_string()));
+            }
+            http_message(StatusCode::OK, txids[index].to_hex(), TTL_LONG)
         }
         (&Method::GET, Some(&"block"), Some(hash), Some(&"txs"), start_index, None) => {
             let hash = Sha256dHash::from_hex(hash)?;
@@ -1104,6 +1118,18 @@ impl From<FromHexError> for HttpError {
     fn from(_e: FromHexError) -> Self {
         //HttpError::from(e.description().to_string())
         HttpError::from("Invalid hex string".to_string())
+    }
+}
+impl From<bitcoin::hashes::hex::Error> for HttpError {
+    fn from(_e: bitcoin::hashes::hex::Error) -> Self {
+        //HttpError::from(e.description().to_string())
+        HttpError::from("Invalid hex string".to_string())
+    }
+}
+impl From<bitcoin::util::address::Error> for HttpError {
+    fn from(_e: bitcoin::util::address::Error) -> Self {
+        //HttpError::from(e.description().to_string())
+        HttpError::from("Invalid Bitcoin address".to_string())
     }
 }
 impl From<errors::Error> for HttpError {

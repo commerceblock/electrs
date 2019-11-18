@@ -1,8 +1,8 @@
 use std::collections::{HashMap, HashSet};
 
-use bitcoin::consensus::encode::{deserialize, serialize};
-use bitcoin_hashes::{hex::FromHex, sha256, sha256d, Hash};
+use bitcoin::hashes::{hex::FromHex, sha256, sha256d, Hash};
 use elements::confidential::{Asset, Value};
+use elements::encode::{deserialize, serialize};
 use elements::{AssetIssuance, OutPoint, Transaction, TxIn};
 
 use crate::errors::*;
@@ -22,10 +22,34 @@ lazy_static! {
     static ref NATIVE_ASSET_ID_TESTNET: sha256d::Hash =
         sha256d::Hash::from_hex("5ac9f65c0efcc4775e0baec4ec03abdde22473cd3cf33c0419ca290e0751b225")
             .unwrap();
+    static ref NATIVE_ASSET: NativeAsset = NativeAsset {
+        asset_id: *NATIVE_ASSET_ID,
+        meta: AssetMeta {
+            contract: json!(null),
+            entity: json!(null),
+            precision: 8,
+            name: "Liquid Bitcoin".into(),
+            ticker: Some("L-BTC".into()),
+        }
+    };
 }
 
 #[derive(Serialize)]
-pub struct AssetEntry {
+#[serde(untagged)]
+pub enum LiquidAsset {
+    Issued(IssuedAsset),
+    Native(NativeAsset),
+}
+
+#[derive(Serialize, Clone)]
+pub struct NativeAsset {
+    pub asset_id: sha256d::Hash, // not really a sha256d
+    #[serde(flatten)]
+    pub meta: AssetMeta,
+}
+
+#[derive(Serialize)]
+pub struct IssuedAsset {
     pub asset_id: sha256d::Hash, // not really a sha256d
     pub issuance_txin: TxInput,
     pub issuance_prevout: OutPoint,
@@ -45,7 +69,7 @@ pub struct AssetEntry {
     pub meta: Option<AssetMeta>,
 }
 
-// DB representation
+// DB representation (issued assets only)
 #[derive(Serialize, Deserialize, Debug)]
 pub struct AssetRow {
     pub issuance_txid: FullHash,
@@ -56,7 +80,7 @@ pub struct AssetRow {
     pub reissuance_token: FullHash,
 }
 
-impl AssetEntry {
+impl IssuedAsset {
     pub fn new(
         asset_id: &sha256d::Hash,
         asset: &AssetRow,
@@ -106,7 +130,7 @@ pub struct IssuingInfo {
     pub token_amount: Option<u64>,
 }
 
-// Index confirmed transaction and write histoy entries as db rows into `rows`
+// Index confirmed transaction issuances and save as db rows
 pub fn index_confirmed_tx_assets(tx: &Transaction, confirmed_height: u32, rows: &mut Vec<DBRow>) {
     let (history, issuances) = index_tx_assets(tx);
 
@@ -125,15 +149,13 @@ pub fn index_confirmed_tx_assets(tx: &Transaction, confirmed_height: u32, rows: 
     }));
 }
 
-// Index confirmed transaction and write histoy entries as db rows into `rows`
+// Index mempool transaction issuances and save to in-memory store
 pub fn index_mempool_tx_assets(
     tx: &Transaction,
     asset_history: &mut HashMap<sha256d::Hash, Vec<TxHistoryInfo>>,
     asset_issuance: &mut HashMap<sha256d::Hash, AssetRow>,
 ) {
     let (history, issuances) = index_tx_assets(tx);
-    // unconfirmed issuances are discarded, we're only interested in history items
-
     for (asset_id, info) in history {
         asset_history
             .entry(asset_id)
@@ -145,7 +167,7 @@ pub fn index_mempool_tx_assets(
     }
 }
 
-// Index confirmed transaction and write histoy entries as db rows into `rows`
+// Remove mempool transaction issuances from in-memory store
 pub fn remove_mempool_tx_assets(
     to_remove: &HashSet<&sha256d::Hash>,
     asset_history: &mut HashMap<sha256d::Hash, Vec<TxHistoryInfo>>,
@@ -161,7 +183,7 @@ pub fn remove_mempool_tx_assets(
         .retain(|_assethash, issuance| !to_remove.contains(&parse_hash(&issuance.issuance_txid)));
 }
 
-// Internal utility function, index atransaction and return its history entries and issuances
+// Internal utility function, index a transaction and return its history entries and issuances
 fn index_tx_assets(
     tx: &Transaction,
 ) -> (
@@ -174,7 +196,7 @@ fn index_tx_assets(
     let txid = full_hash(&tx.txid()[..]);
     for (txo_index, txo) in tx.output.iter().enumerate() {
         if !is_spendable(txo) {
-            if let Some(asset_id) = get_user_asset_id(&txo.asset) {
+            if let Some(asset_id) = get_issued_asset_id(&txo.asset) {
                 history.push((
                     asset_id,
                     TxHistoryInfo::Burning(FundingInfo {
@@ -198,6 +220,7 @@ fn index_tx_assets(
 
             let issued_amount = match txi.asset_issuance.amount {
                 Value::Explicit(amount) => Some(amount),
+                Value::Null => Some(0),
                 _ => None,
             };
             let token_amount = match txi.asset_issuance.inflation_keys {
@@ -245,7 +268,7 @@ fn index_tx_assets(
 }
 
 // returns the asset id if its an explicit user-issued asset, or none for confidential and native assets
-fn get_user_asset_id(asset: &Asset) -> Option<sha256d::Hash> {
+fn get_issued_asset_id(asset: &Asset) -> Option<sha256d::Hash> {
     match asset {
         Asset::Explicit(asset_id)
             if asset_id != &*NATIVE_ASSET_ID && asset_id != &*NATIVE_ASSET_ID_TESTNET =>
@@ -274,7 +297,11 @@ pub fn lookup_asset(
     query: &Query,
     registry: Option<&AssetRegistry>,
     asset_id: &sha256d::Hash,
-) -> Result<Option<AssetEntry>> {
+) -> Result<Option<LiquidAsset>> {
+    if asset_id == &*NATIVE_ASSET_ID {
+        return Ok(Some(LiquidAsset::Native(NATIVE_ASSET.clone())));
+    }
+
     let history_db = query.chain().store().history_db();
     let mempool_issuances = &query.mempool().asset_issuance;
 
@@ -294,7 +321,9 @@ pub fn lookup_asset(
         let stats = asset_stats(query, asset_id, &reissuance_token);
         let status = query.get_tx_status(&parse_hash(&row.issuance_txid));
 
-        Some(AssetEntry::new(asset_id, row, stats, meta, status))
+        let asset = IssuedAsset::new(asset_id, row, stats, meta, status);
+
+        Some(LiquidAsset::Issued(asset))
     } else {
         None
     })

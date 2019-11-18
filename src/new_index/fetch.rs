@@ -1,9 +1,13 @@
 use crate::chain::Block;
 
-use bitcoin::consensus::encode::{deserialize, serialize, Decodable};
+use bitcoin::hashes::sha256d::Hash as Sha256dHash;
 use bitcoin::util::hash::BitcoinHash;
-use bitcoin_hashes::sha256d::Hash as Sha256dHash;
 use rayon::prelude::*;
+
+#[cfg(not(feature = "ocean"))]
+use bitcoin::consensus::encode::{deserialize, serialize, Decodable};
+#[cfg(feature = "ocean")]
+use elements::encode::{deserialize, serialize, Decodable};
 
 use std::collections::HashMap;
 use std::fs;

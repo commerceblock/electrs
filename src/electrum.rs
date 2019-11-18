@@ -1,17 +1,22 @@
-use bitcoin::consensus::encode::serialize;
-use bitcoin_hashes::hex::{FromHex, ToHex};
-use bitcoin_hashes::sha256d::Hash as Sha256dHash;
-use crypto::digest::Digest;
-use crypto::sha2::Sha256;
-use error_chain::ChainedError;
-use hex;
-use serde_json::{from_str, Value};
 use std::collections::HashMap;
 use std::io::{BufRead, BufReader, Write};
 use std::net::{Shutdown, SocketAddr, TcpListener, TcpStream};
 use std::sync::mpsc::{Sender, SyncSender, TrySendError};
 use std::sync::{Arc, Mutex};
 use std::thread;
+
+use bitcoin::hashes::hex::{FromHex, ToHex};
+use bitcoin::hashes::sha256d::Hash as Sha256dHash;
+use crypto::digest::Digest;
+use crypto::sha2::Sha256;
+use error_chain::ChainedError;
+use hex;
+use serde_json::{from_str, Value};
+
+#[cfg(not(feature = "ocean"))]
+use bitcoin::consensus::encode::serialize;
+#[cfg(feature = "ocean")]
+use elements::encode::serialize;
 
 use crate::errors::*;
 use crate::metrics::{Gauge, HistogramOpts, HistogramVec, MetricOpts, Metrics};
