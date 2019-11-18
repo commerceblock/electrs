@@ -8,7 +8,7 @@ use crate::util::BlockId;
 #[cfg(feature = "ocean")]
 lazy_static! {
     static ref INITIAL_ISSUANCE_PREVOUT: Sha256dHash =
-        Sha256dHash::from_hex("d758a4876ddd31463929c7e87132c14d9a32138f69d2f1df72b24a21da1384ff")
+        Sha256dHash::from_hex("4b663b0279c27f3f7b1abf81a0c847e264594274f7bfba984ba9a99544a95515")
             .unwrap();
 }
 
