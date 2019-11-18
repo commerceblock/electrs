@@ -52,6 +52,7 @@ url = "2.1"
 
 [dependencies.bitcoin]
 version = "0.20"
+features = ["use-serde"]
 
 [dependencies.elements]
 package = "rust-ocean"

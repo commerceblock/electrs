@@ -7,8 +7,8 @@ fn main() {
     use std::collections::HashSet;
     use std::sync::Arc;
 
-    use bitcoin::Script;
     use bitcoin::consensus::encode::deserialize;
+    use bitcoin::Script;
     use electrs::{
         chain::Transaction,
         config::Config,

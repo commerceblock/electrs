@@ -1,6 +1,6 @@
 use bincode;
-use bitcoin::Script;
 use bitcoin::hashes::sha256d::Hash as Sha256dHash;
+use bitcoin::Script;
 use crypto::digest::Digest;
 use crypto::sha2::Sha256;
 use itertools::Itertools;

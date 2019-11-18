@@ -1,4 +1,4 @@
-use bitcoin::blockdata::script::{Instruction::PushBytes};
+use bitcoin::blockdata::script::Instruction::PushBytes;
 use bitcoin::Script;
 
 #[cfg(feature = "ocean")]
