@@ -6,6 +6,7 @@ use std::net::SocketAddr;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use stderrlog;
+use std::net::ToSocketAddrs;
 
 #[cfg(feature = "ocean")]
 use bitcoin::hashes::hex::ToHex;
@@ -222,26 +223,37 @@ impl Config {
             Network::OceanRegtest => 44224,
         };
 
-        let daemon_rpc_addr: SocketAddr = m
+        let daemon_rpc_addrs: Vec<_> = m
             .value_of("daemon_rpc_addr")
             .unwrap_or(&format!("127.0.0.1:{}", default_daemon_port))
-            .parse()
-            .expect("invalid Bitcoind RPC address");
-        let electrum_rpc_addr: SocketAddr = m
+            .to_socket_addrs()
+            .expect("invalid Bitcoind RPC address")
+            .collect();
+        let daemon_rpc_addr : SocketAddr = daemon_rpc_addrs[0];
+
+        let electrum_rpc_addrs: Vec<_> = m
             .value_of("electrum_rpc_addr")
             .unwrap_or(&format!("127.0.0.1:{}", default_electrum_port))
-            .parse()
-            .expect("invalid Electrum RPC address");
-        let http_addr: SocketAddr = m
+            .to_socket_addrs()
+            .expect("invalid Electrum RPC address")
+            .collect();
+        let electrum_rpc_addr : SocketAddr = electrum_rpc_addrs[0];
+
+        let http_addrs: Vec<_> = m
             .value_of("http_addr")
             .unwrap_or(&format!("127.0.0.1:{}", default_http_port))
-            .parse()
-            .expect("invalid HTTP server address");
-        let monitoring_addr: SocketAddr = m
+            .to_socket_addrs()
+            .expect("invalid HTTP server address")
+            .collect();
+        let http_addr : SocketAddr = http_addrs[0];
+
+        let monitoring_addrs: Vec<_> = m
             .value_of("monitoring_addr")
             .unwrap_or(&format!("127.0.0.1:{}", default_monitoring_port))
-            .parse()
-            .expect("invalid Prometheus monitoring address");
+            .to_socket_addrs()
+            .expect("invalid Prometheus monitoring address")
+            .collect();
+        let monitoring_addr : SocketAddr = monitoring_addrs[0];
 
         let mut daemon_dir = m
             .value_of("daemon_dir")
