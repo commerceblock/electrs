@@ -15,7 +15,7 @@ pub struct InnerScripts {
 pub fn script_to_address(script: &Script, network: &Network) -> Option<String> {
     match network {
         #[cfg(feature = "ocean")]
-        Network::Ocean | Network::OceanRegtest => {
+        Network::Ocean | Network::Gold | Network::OceanRegtest => {
             elements_address::Address::from_script(script, None, network.address_params())
                 .map(|a| a.to_string())
         }

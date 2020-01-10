@@ -190,6 +190,8 @@ impl Config {
             #[cfg(feature = "ocean")]
             Network::Ocean => 7041,
             #[cfg(feature = "ocean")]
+            Network::Gold => 7041,
+            #[cfg(feature = "ocean")]
             Network::OceanRegtest => 7041,
         };
         let default_electrum_port = match network_type {
@@ -199,6 +201,8 @@ impl Config {
 
             #[cfg(feature = "ocean")]
             Network::Ocean => 51000,
+            #[cfg(feature = "ocean")]
+            Network::Gold => 51000,
             #[cfg(feature = "ocean")]
             Network::OceanRegtest => 51401,
         };
@@ -210,6 +214,8 @@ impl Config {
             #[cfg(feature = "ocean")]
             Network::Ocean => 3000,
             #[cfg(feature = "ocean")]
+            Network::Gold => 3000,
+            #[cfg(feature = "ocean")]
             Network::OceanRegtest => 3002,
         };
         let default_monitoring_port = match network_type {
@@ -219,6 +225,8 @@ impl Config {
 
             #[cfg(feature = "ocean")]
             Network::Ocean => 34224,
+            #[cfg(feature = "ocean")]
+            Network::Gold => 34224,
             #[cfg(feature = "ocean")]
             Network::OceanRegtest => 44224,
         };
@@ -269,7 +277,9 @@ impl Config {
             Network::Regtest => daemon_dir.push("regtest"),
 
             #[cfg(feature = "ocean")]
-            Network::Ocean => daemon_dir.push("gold_main"),
+            Network::Ocean => daemon_dir.push("ocean_main"),
+            #[cfg(feature = "ocean")]
+            Network::Gold => daemon_dir.push("gold_main"),
             #[cfg(feature = "ocean")]
             Network::OceanRegtest => daemon_dir.push("oceanregtest"),
         }

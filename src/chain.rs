@@ -27,6 +27,8 @@ pub enum Network {
     #[cfg(feature = "ocean")]
     Ocean,
     #[cfg(feature = "ocean")]
+    Gold,
+    #[cfg(feature = "ocean")]
     OceanRegtest,
 }
 
@@ -45,6 +47,8 @@ impl Network {
             #[cfg(feature = "ocean")]
             Network::Ocean => 0xDAB5BFFA,
             #[cfg(feature = "ocean")]
+            Network::Gold => 0xDAB5BFFA,
+            #[cfg(feature = "ocean")]
             Network::OceanRegtest => 0xDAB5BFFA,
         }
     }
@@ -54,6 +58,7 @@ impl Network {
         // ocean regtest uses elements's address params
         match self {
             Network::Ocean => &address::AddressParams::OCEAN,
+            Network::Gold => &address::AddressParams::GOLD,
             Network::OceanRegtest => &address::AddressParams::ELEMENTS,
             _ => panic!("the ocean-only address_params() called with non-ocean network"),
         }
@@ -73,6 +78,7 @@ impl Network {
             "testnet".to_string(),
             "regtest".to_string(),
             "ocean".to_string(),
+            "gold".to_string(),
             "oceanregtest".to_string(),
         ];
     }
@@ -87,6 +93,8 @@ impl From<&str> for Network {
 
             #[cfg(feature = "ocean")]
             "ocean" => Network::Ocean,
+            #[cfg(feature = "ocean")]
+            "gold" => Network::Gold,
             #[cfg(feature = "ocean")]
             "oceanregtest" => Network::OceanRegtest,
 
@@ -104,6 +112,8 @@ impl From<&Network> for BNetwork {
 
             #[cfg(feature = "ocean")]
             Network::Ocean => BNetwork::Bitcoin, // @FIXME
+            #[cfg(feature = "ocean")]
+            Network::Gold => BNetwork::Bitcoin, // @FIXME
             #[cfg(feature = "ocean")]
             Network::OceanRegtest => BNetwork::Regtest, // @FIXME
         }
