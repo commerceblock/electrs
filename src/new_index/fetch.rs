@@ -4,9 +4,9 @@ use bitcoin::hashes::sha256d::Hash as Sha256dHash;
 use bitcoin::util::hash::BitcoinHash;
 use rayon::prelude::*;
 
-#[cfg(not(feature = "ocean"))]
+#[cfg(not(any(feature = "ocean", feature = "liquid")))]
 use bitcoin::consensus::encode::{deserialize, serialize, Decodable};
-#[cfg(feature = "ocean")]
+#[cfg(any(feature = "ocean", feature = "liquid"))]
 use elements::encode::{deserialize, serialize, Decodable};
 
 use std::collections::HashMap;

@@ -2,9 +2,9 @@ use arraydeque::{ArrayDeque, Wrapping};
 use bitcoin::hashes::sha256d::Hash as Sha256dHash;
 use itertools::Itertools;
 
-#[cfg(not(feature = "ocean"))]
+#[cfg(not(any(feature = "ocean", feature = "liquid")))]
 use bitcoin::consensus::encode::serialize;
-#[cfg(feature = "ocean")]
+#[cfg(any(feature = "ocean", feature = "liquid"))]
 use elements::encode::serialize;
 
 use std::collections::{BTreeSet, HashMap, HashSet};
@@ -23,7 +23,7 @@ use crate::new_index::{
 use crate::util::fees::{make_fee_histogram, TxFeeInfo};
 use crate::util::{full_hash, has_prevout, is_spendable, Bytes};
 
-#[cfg(feature = "ocean")]
+#[cfg(any(feature = "ocean", feature = "liquid"))]
 use crate::elements::asset;
 
 const RECENT_TXS_SIZE: usize = 10;
@@ -44,9 +44,9 @@ pub struct Mempool {
     count: GaugeVec,       // current state of the mempool
 
     // elements only
-    #[cfg(feature = "ocean")]
+    #[cfg(any(feature = "ocean", feature = "liquid"))]
     pub asset_history: HashMap<Sha256dHash, Vec<TxHistoryInfo>>, // asset_id -> {history_entries}
-    #[cfg(feature = "ocean")]
+    #[cfg(any(feature = "ocean", feature = "liquid"))]
     pub asset_issuance: HashMap<Sha256dHash, asset::AssetRow>, // asset_id -> {history_entries}
 }
 
@@ -56,7 +56,7 @@ pub struct TxOverview {
     txid: Sha256dHash,
     fee: u64,
     vsize: u32,
-    #[cfg(not(feature = "ocean"))]
+    #[cfg(not(any(feature = "ocean", feature = "liquid")))]
     value: u64,
 }
 
@@ -86,9 +86,9 @@ impl Mempool {
                 &["type"],
             ),
 
-            #[cfg(feature = "ocean")]
+            #[cfg(any(feature = "ocean", feature = "liquid"))]
             asset_history: HashMap::new(),
-            #[cfg(feature = "ocean")]
+            #[cfg(any(feature = "ocean", feature = "liquid"))]
             asset_issuance: HashMap::new(),
         }
     }
@@ -159,14 +159,14 @@ impl Mempool {
                     value: info.value,
                     confirmed: None,
 
-                    #[cfg(feature = "ocean")]
+                    #[cfg(any(feature = "ocean", feature = "liquid"))]
                     asset: self
                         .lookup_txo(&entry.get_outpoint())
                         .expect("missing txo")
                         .asset,
                 }),
                 TxHistoryInfo::Spending(_) => None,
-                #[cfg(feature = "ocean")]
+                #[cfg(any(feature = "ocean", feature = "liquid"))]
                 TxHistoryInfo::Issuing(_) | TxHistoryInfo::Burning(_) => unreachable!(),
             })
             .filter(|utxo| !self.has_spend(&OutPoint::from(utxo)))
@@ -190,28 +190,28 @@ impl Mempool {
             }
 
             match entry {
-                #[cfg(not(feature = "ocean"))]
+                #[cfg(not(any(feature = "ocean", feature = "liquid")))]
                 TxHistoryInfo::Funding(info) => {
                     stats.funded_txo_count += 1;
                     stats.funded_txo_sum += info.value;
                 }
 
-                #[cfg(not(feature = "ocean"))]
+                #[cfg(not(any(feature = "ocean", feature = "liquid")))]
                 TxHistoryInfo::Spending(info) => {
                     stats.spent_txo_count += 1;
                     stats.spent_txo_sum += info.value;
                 }
 
                 // elements
-                #[cfg(feature = "ocean")]
+                #[cfg(any(feature = "ocean", feature = "liquid"))]
                 TxHistoryInfo::Funding(_) => {
                     stats.funded_txo_count += 1;
                 }
-                #[cfg(feature = "ocean")]
+                #[cfg(any(feature = "ocean", feature = "liquid"))]
                 TxHistoryInfo::Spending(_) => {
                     stats.spent_txo_count += 1;
                 }
-                #[cfg(feature = "ocean")]
+                #[cfg(any(feature = "ocean", feature = "liquid"))]
                 TxHistoryInfo::Issuing(_) | TxHistoryInfo::Burning(_) => unreachable!(),
             };
         }
@@ -329,7 +329,7 @@ impl Mempool {
                 txid: txid,
                 fee: feeinfo.fee,
                 vsize: feeinfo.vsize,
-                #[cfg(not(feature = "ocean"))]
+                #[cfg(not(any(feature = "ocean", feature = "liquid")))]
                 value: prevouts.values().map(|prevout| prevout.value).sum(),
             });
 
@@ -379,7 +379,7 @@ impl Mempool {
             }
 
             // Index issued assets
-            #[cfg(feature = "ocean")]
+            #[cfg(any(feature = "ocean", feature = "liquid"))]
             asset::index_mempool_tx_assets(&tx, &mut self.asset_history, &mut self.asset_issuance);
         }
     }
@@ -451,7 +451,7 @@ impl Mempool {
             !entries.is_empty()
         });
 
-        #[cfg(feature = "ocean")]
+        #[cfg(any(feature = "ocean", feature = "liquid"))]
         asset::remove_mempool_tx_assets(
             &to_remove,
             &mut self.asset_history,
@@ -462,7 +462,7 @@ impl Mempool {
             .retain(|_outpoint, (txid, _vin)| !to_remove.contains(txid));
     }
 
-    #[cfg(feature = "ocean")]
+    #[cfg(any(feature = "ocean", feature = "liquid"))]
     pub fn asset_history(&self, asset_id: &Sha256dHash, limit: usize) -> Vec<Transaction> {
         self.asset_history
             .get(asset_id)

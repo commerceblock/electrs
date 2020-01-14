@@ -1,7 +1,7 @@
 use bitcoin::blockdata::script::Instruction::PushBytes;
 use bitcoin::Script;
 
-#[cfg(feature = "ocean")]
+#[cfg(any(feature = "ocean", feature = "liquid"))]
 use elements::address as elements_address;
 
 use crate::chain::Network;
@@ -14,7 +14,7 @@ pub struct InnerScripts {
 
 pub fn script_to_address(script: &Script, network: &Network) -> Option<String> {
     match network {
-        #[cfg(feature = "ocean")]
+        #[cfg(any(feature = "ocean", feature = "liquid"))]
         Network::Ocean | Network::Gold | Network::OceanRegtest => {
             elements_address::Address::from_script(script, None, network.address_params())
                 .map(|a| a.to_string())
@@ -46,7 +46,7 @@ pub fn get_innerscripts(txin: &TxIn, prevout: &TxOut) -> InnerScripts {
         || redeem_script.as_ref().map_or(false, |s| s.is_v0_p2wsh())
     {
         let witness = &txin.witness;
-        #[cfg(feature = "ocean")]
+        #[cfg(any(feature = "ocean", feature = "liquid"))]
         let witness = &witness.script_witness;
         witness.iter().last().cloned().map(Script::from)
     } else {

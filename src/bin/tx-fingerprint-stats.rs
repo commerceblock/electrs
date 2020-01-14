@@ -2,7 +2,7 @@ extern crate electrs;
 #[macro_use]
 extern crate log;
 
-#[cfg(not(feature = "ocean"))]
+#[cfg(not(any(feature = "ocean", feature = "liquid")))]
 fn main() {
     use std::collections::HashSet;
     use std::sync::Arc;
@@ -138,5 +138,5 @@ fn main() {
     );
 }
 
-#[cfg(feature = "ocean")]
+#[cfg(any(feature = "ocean", feature = "liquid"))]
 fn main() {}

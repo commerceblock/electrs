@@ -13,9 +13,9 @@ use glob;
 use hex;
 use serde_json::{from_str, from_value, Value};
 
-#[cfg(not(feature = "ocean"))]
+#[cfg(not(any(feature = "ocean", feature = "liquid")))]
 use bitcoin::consensus::encode::{deserialize, serialize};
-#[cfg(feature = "ocean")]
+#[cfg(any(feature = "ocean", feature = "liquid"))]
 use elements::encode::{deserialize, serialize};
 
 use crate::chain::{Block, BlockHeader, Network, Transaction};

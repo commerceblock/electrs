@@ -1,4 +1,4 @@
-#[cfg(feature = "ocean")]
+#[cfg(any(feature = "ocean", feature = "liquid"))]
 use crate::chain::Value;
 use crate::chain::{Transaction, TxOut};
 use std::collections::HashMap;
@@ -12,7 +12,7 @@ pub struct TxFeeInfo {
 }
 
 impl TxFeeInfo {
-    #[cfg(not(feature = "ocean"))]
+    #[cfg(not(any(feature = "ocean", feature = "liquid")))]
     pub fn new(tx: &Transaction, prevouts: &HashMap<u32, &TxOut>) -> Self {
         let total_in: u64 = prevouts.values().map(|prevout| prevout.value).sum();
         let total_out: u64 = tx.output.iter().map(|vout| vout.value).sum();
@@ -26,7 +26,7 @@ impl TxFeeInfo {
         }
     }
 
-    #[cfg(feature = "ocean")]
+    #[cfg(any(feature = "ocean", feature = "liquid"))]
     pub fn new(tx: &Transaction, _prevouts: &HashMap<u32, &TxOut>) -> Self {
         let fee = tx
             .output

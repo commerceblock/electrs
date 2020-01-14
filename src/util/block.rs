@@ -7,9 +7,9 @@ use bitcoin::hashes::sha256d::Hash as Sha256dHash;
 use bitcoin::util::hash::BitcoinHash;
 use time;
 
-#[cfg(not(feature = "ocean"))]
+#[cfg(not(any(feature = "ocean", feature = "liquid")))]
 use bitcoin::consensus::encode::serialize;
-#[cfg(feature = "ocean")]
+#[cfg(any(feature = "ocean", feature = "liquid"))]
 use elements::encode::serialize;
 
 use crate::chain::{Block, BlockHeader};
