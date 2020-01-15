@@ -1,11 +1,15 @@
 use bincode;
-use bitcoin::blockdata::script::Script;
-use bitcoin::consensus::encode::{deserialize, serialize};
-use bitcoin_hashes::sha256d::Hash as Sha256dHash;
+use bitcoin::hashes::sha256d::Hash as Sha256dHash;
+use bitcoin::Script;
 use crypto::digest::Digest;
 use crypto::sha2::Sha256;
 use itertools::Itertools;
 use rayon::prelude::*;
+
+#[cfg(not(any(feature = "ocean", feature = "liquid")))]
+use bitcoin::consensus::encode::{deserialize, serialize};
+#[cfg(any(feature = "ocean", feature = "liquid"))]
+use elements::encode::{deserialize, serialize};
 
 use std::collections::{BTreeSet, HashMap, HashSet};
 use std::path::Path;
@@ -23,7 +27,7 @@ use crate::util::{
 use crate::new_index::db::{DBFlush, DBRow, ReverseScanIterator, ScanIterator, DB};
 use crate::new_index::fetch::{start_fetcher, BlockEntry, FetchFrom};
 
-#[cfg(feature = "liquid")]
+#[cfg(any(feature = "ocean", feature = "liquid"))]
 use crate::elements::asset::{index_confirmed_tx_assets, IssuingInfo};
 
 const MIN_HISTORY_ITEMS_TO_CACHE: usize = 100;
@@ -86,7 +90,7 @@ pub struct Utxo {
     pub confirmed: Option<BlockId>,
     pub value: Value,
 
-    #[cfg(feature = "liquid")]
+    #[cfg(any(feature = "ocean", feature = "liquid"))]
     pub asset: elements::confidential::Asset,
 }
 
@@ -432,10 +436,10 @@ impl ChainQuery {
         newutxos
             .into_iter()
             .map(|(outpoint, (blockid, value))| {
-                // in elements/liquid chains, we have to lookup the txo in order to get its
+                // in elements/ocean chains, we have to lookup the txo in order to get its
                 // associated asset. the asset information could be kept in the db history rows
                 // alongside the value to avoid this.
-                #[cfg(feature = "liquid")]
+                #[cfg(any(feature = "ocean", feature = "liquid"))]
                 let txo = self.lookup_txo(&outpoint).expect("missing utxo");
 
                 Utxo {
@@ -444,7 +448,7 @@ impl ChainQuery {
                     value,
                     confirmed: Some(blockid),
 
-                    #[cfg(feature = "liquid")]
+                    #[cfg(any(feature = "ocean", feature = "liquid"))]
                     asset: txo.asset,
                 }
             })
@@ -480,7 +484,7 @@ impl ChainQuery {
                     utxos.insert(history.get_outpoint(), (blockid, info.value))
                 }
                 TxHistoryInfo::Spending(_) => utxos.remove(&history.get_outpoint()),
-                #[cfg(feature = "liquid")]
+                #[cfg(any(feature = "ocean", feature = "liquid"))]
                 TxHistoryInfo::Issuing(_) | TxHistoryInfo::Burning(_) => unreachable!(),
             };
         }
@@ -551,16 +555,34 @@ impl ChainQuery {
             }
 
             match history.key.txinfo {
-                #[cfg(not(feature = "liquid"))]
+                #[cfg(not(any(feature = "ocean", feature = "liquid")))]
                 TxHistoryInfo::Funding(ref info) => {
                     stats.funded_txo_count += 1;
                     stats.funded_txo_sum += info.value;
                 }
 
-                #[cfg(not(feature = "liquid"))]
+                #[cfg(not(any(feature = "ocean", feature = "liquid")))]
                 TxHistoryInfo::Spending(ref info) => {
                     stats.spent_txo_count += 1;
                     stats.spent_txo_sum += info.value;
+                }
+
+                #[cfg(feature = "ocean")]
+                TxHistoryInfo::Funding(ref info) => {
+                    stats.funded_txo_count += 1;
+                    match info.value {
+                        Value::Explicit(val) => stats.funded_txo_sum += val,
+                        _ => ()
+                    }
+                }
+
+                #[cfg(feature = "ocean")]
+                TxHistoryInfo::Spending(ref info) => {
+                    stats.spent_txo_count += 1;
+                    match info.value {
+                        Value::Explicit(val) => stats.spent_txo_sum += val,
+                        _ => ()
+                    }
                 }
 
                 #[cfg(feature = "liquid")]
@@ -573,7 +595,7 @@ impl ChainQuery {
                     stats.spent_txo_count += 1;
                 }
 
-                #[cfg(feature = "liquid")]
+                #[cfg(any(feature = "ocean", feature = "liquid"))]
                 TxHistoryInfo::Issuing(_) | TxHistoryInfo::Burning(_) => unreachable!(),
             }
 
@@ -744,7 +766,7 @@ impl ChainQuery {
         )
     }
 
-    #[cfg(feature = "liquid")]
+    #[cfg(any(feature = "ocean", feature = "liquid"))]
     pub fn asset_history(
         &self,
         asset_id: &Sha256dHash,
@@ -754,7 +776,7 @@ impl ChainQuery {
         self._history(b'I', &asset_id[..], last_seen_txid, limit)
     }
 
-    #[cfg(feature = "liquid")]
+    #[cfg(any(feature = "ocean", feature = "liquid"))]
     pub fn asset_history_txids(&self, asset_id: &Sha256dHash) -> Vec<(Sha256dHash, BlockId)> {
         self._history_txids(b'I', &asset_id[..])
     }
@@ -940,7 +962,7 @@ fn index_transaction(
         rows.push(edge.to_row());
     }
 
-    #[cfg(feature = "liquid")]
+    #[cfg(any(feature = "ocean", feature = "liquid"))]
     index_confirmed_tx_assets(tx, confirmed_height, rows);
 }
 
@@ -1168,9 +1190,9 @@ pub enum TxHistoryInfo {
     Funding(FundingInfo),
     Spending(SpendingInfo),
 
-    #[cfg(feature = "liquid")]
+    #[cfg(any(feature = "ocean", feature = "liquid"))]
     Issuing(IssuingInfo),
-    #[cfg(feature = "liquid")]
+    #[cfg(any(feature = "ocean", feature = "liquid"))]
     Burning(FundingInfo),
 }
 
@@ -1180,7 +1202,7 @@ impl TxHistoryInfo {
             TxHistoryInfo::Funding(FundingInfo { txid, .. })
             | TxHistoryInfo::Spending(SpendingInfo { txid, .. }) => parse_hash(&txid),
 
-            #[cfg(feature = "liquid")]
+            #[cfg(any(feature = "ocean", feature = "liquid"))]
             TxHistoryInfo::Issuing(IssuingInfo { txid, .. })
             | TxHistoryInfo::Burning(FundingInfo { txid, .. }) => parse_hash(&txid),
         }
@@ -1261,7 +1283,7 @@ impl TxHistoryInfo {
                 txid: parse_hash(&info.prev_txid),
                 vout: info.prev_vout as u32,
             },
-            #[cfg(feature = "liquid")]
+            #[cfg(any(feature = "ocean", feature = "liquid"))]
             TxHistoryInfo::Issuing(_) | TxHistoryInfo::Burning(_) => unreachable!(),
         }
     }

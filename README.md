@@ -1,4 +1,4 @@
-# Esplora - Electrs backend API
+# Electrs backend API for Ocean blockchains
 
 A block chain index engine and HTTP API written in Rust based on [romanz/electrs](https://github.com/romanz/electrs).
 
@@ -15,23 +15,14 @@ Install Rust, Bitcoin Core and the `clang` and `cmake` packages, then:
 ```bash
 $ git clone https://github.com/blockstream/electrs && cd electrs
 $ git checkout new-index
-$ cargo run --release --bin electrs -- -vvvv --daemon-dir ~/.bitcoin
 
-# Or for liquid:
-$ cargo run --features liquid --release --bin electrs -- -vvvv --daemon-dir ~/.liquid
+cargo run --features=ocean --release --bin electrs -- -vvvv --daemon-dir ~/ocean_dir/ --daemon-rpc-addr="127.0.0.1:7041" --cookie="user1:password1" --jsonrpc-import
 ```
+
+Where `--daemon-dir` is the data directory of the Ocean client, `--daemon-rpc-addr` specifies the Ocean client RPC interface and `--cookie` specifies the RPC credentials. 
 
 See [electrs's original documentation](https://github.com/romanz/electrs/blob/master/doc/usage.md) for more detailed instructions.
 Note that our indexes are incompatible with electrs's and has to be created separately.
-
-The indexes require 440GB of storage after running compaction, but you'll need to have about 1TB
-of free space available for the initial (non-compacted) indexing process.
-Creating the indexes should take a few hours on a beefy machine with SSD.
-
-> Note: the pre-v2 version supported a "light" indexing mode for personal use,
-> where less data is kept on-disk in exchange for a performance hit and more reliance/load on bitcoind.
-> This option is not currently available, but can be enabled with [an older esplora release](https://github.com/Blockstream/esplora/releases/tag/esplora_v1.67).
-> We're hoping to eventually get this feature back. Let us know if you find this important!
 
 To deploy with Docker, follow the [instructions here](https://github.com/Blockstream/esplora#how-to-build-the-docker-image).
 
@@ -53,8 +44,8 @@ To deploy with Docker, follow the [instructions here](https://github.com/Blockst
   With these new indexes, bitcoind is no longer queried to serve user requests and is only polled
   periodically for new blocks and for syncing the mempool.
 
-- Support for Liquid and other Elements-based networks, including CT, peg-in/out and multi-asset.
-  (requires enabling the `liquid` feature flag using `--features liquid`)
+- Support for Ocean based networks, including CT, peg-in/out and multi-asset.
+  (requires enabling the `ocean` feature flag using `--features ocean`)
 
 ### CLI options
 

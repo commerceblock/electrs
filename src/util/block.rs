@@ -1,16 +1,20 @@
-use crate::chain::{Block, BlockHeader};
-use crate::errors::*;
-use crate::new_index::BlockEntry;
-
-use bitcoin::consensus::encode::serialize;
-use bitcoin::util::hash::BitcoinHash;
-use bitcoin_hashes::sha256d::Hash as Sha256dHash;
-
 use std::collections::HashMap;
 use std::fmt;
 use std::iter::FromIterator;
 use std::slice;
+
+use bitcoin::hashes::sha256d::Hash as Sha256dHash;
+use bitcoin::util::hash::BitcoinHash;
 use time;
+
+#[cfg(not(any(feature = "ocean", feature = "liquid")))]
+use bitcoin::consensus::encode::serialize;
+#[cfg(any(feature = "ocean", feature = "liquid"))]
+use elements::encode::serialize;
+
+use crate::chain::{Block, BlockHeader};
+use crate::errors::*;
+use crate::new_index::BlockEntry;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct BlockId {
@@ -95,9 +99,10 @@ impl HeaderList {
         let null_hash = Sha256dHash::default();
 
         while blockhash != null_hash {
-            let header = headers_map
-                .remove(&blockhash)
-                .expect(&format!("missing expected blockhash in headers map: {:?}", blockhash));
+            let header = headers_map.remove(&blockhash).expect(&format!(
+                "missing expected blockhash in headers map: {:?}",
+                blockhash
+            ));
             blockhash = header.prev_blockhash.clone();
             headers_chain.push(header);
         }

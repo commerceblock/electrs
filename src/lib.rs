@@ -3,8 +3,6 @@
 extern crate base64;
 extern crate bincode;
 extern crate bitcoin;
-extern crate bitcoin_bech32;
-extern crate bitcoin_hashes;
 extern crate chan_signal;
 extern crate crypto;
 extern crate dirs;
@@ -20,7 +18,6 @@ extern crate page_size;
 extern crate prometheus;
 extern crate rayon;
 extern crate rocksdb;
-extern crate secp256k1;
 extern crate serde;
 extern crate stderrlog;
 extern crate sysconf;
@@ -43,7 +40,7 @@ extern crate serde_derive;
 #[macro_use]
 extern crate serde_json;
 
-#[cfg(feature = "liquid")]
+#[cfg(any(feature = "ocean", feature = "liquid"))]
 #[macro_use]
 extern crate lazy_static;
 
@@ -58,5 +55,5 @@ pub mod rest;
 pub mod signal;
 pub mod util;
 
-#[cfg(feature = "liquid")]
+#[cfg(any(feature = "ocean", feature = "liquid"))]
 pub mod elements;

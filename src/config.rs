@@ -6,9 +6,10 @@ use std::net::SocketAddr;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use stderrlog;
+use std::net::ToSocketAddrs;
 
-#[cfg(feature = "liquid")]
-use bitcoin_hashes::hex::ToHex;
+#[cfg(any(feature = "ocean", feature = "liquid"))]
+use bitcoin::hashes::hex::ToHex;
 
 use crate::chain::Network;
 use crate::daemon::CookieGetter;
@@ -35,11 +36,11 @@ pub struct Config {
     pub cors: Option<String>,
     pub precache_scripts: Option<String>,
 
-    #[cfg(feature = "liquid")]
+    #[cfg(any(feature = "ocean", feature = "liquid"))]
     pub parent_network: Network,
-    #[cfg(feature = "liquid")]
+    #[cfg(any(feature = "ocean", feature = "liquid"))]
     pub parent_genesis_hash: String,
-    #[cfg(feature = "liquid")]
+    #[cfg(any(feature = "ocean", feature = "liquid"))]
     pub asset_db_path: Option<PathBuf>,
 }
 
@@ -152,7 +153,7 @@ impl Config {
                     .takes_value(true)
             );
 
-        #[cfg(feature = "liquid")]
+        #[cfg(any(feature = "ocean", feature = "liquid"))]
         let args = args
             .arg(
                 Arg::with_name("parent_network")
@@ -163,7 +164,7 @@ impl Config {
             .arg(
                 Arg::with_name("asset_db_path")
                     .long("asset-db-path")
-                    .help("Directory for liquid/elements asset db")
+                    .help("Directory for ocean/elements asset db")
                     .takes_value(true),
             );
 
@@ -174,11 +175,11 @@ impl Config {
         let db_dir = Path::new(m.value_of("db_dir").unwrap_or("./db"));
         let db_path = db_dir.join(network_name);
 
-        #[cfg(feature = "liquid")]
+        #[cfg(any(feature = "ocean", feature = "liquid"))]
         let parent_network = Network::from(m.value_of("parent_network").unwrap_or("mainnet"));
-        #[cfg(feature = "liquid")]
+        #[cfg(any(feature = "ocean", feature = "liquid"))]
         let parent_genesis_hash = parent_network.genesis_hash().to_hex();
-        #[cfg(feature = "liquid")]
+        #[cfg(any(feature = "ocean", feature = "liquid"))]
         let asset_db_path = m.value_of("asset_db_path").map(PathBuf::from);
 
         let default_daemon_port = match network_type {
@@ -186,62 +187,81 @@ impl Config {
             Network::Testnet => 18332,
             Network::Regtest => 18443,
 
-            #[cfg(feature = "liquid")]
-            Network::Liquid => 7041,
-            #[cfg(feature = "liquid")]
-            Network::LiquidRegtest => 7041,
+            #[cfg(any(feature = "ocean", feature = "liquid"))]
+            Network::Ocean => 7041,
+            #[cfg(any(feature = "ocean", feature = "liquid"))]
+            Network::Gold => 7041,
+            #[cfg(any(feature = "ocean", feature = "liquid"))]
+            Network::OceanRegtest => 7041,
         };
         let default_electrum_port = match network_type {
             Network::Bitcoin => 50001,
             Network::Testnet => 60001,
             Network::Regtest => 60401,
 
-            #[cfg(feature = "liquid")]
-            Network::Liquid => 51000,
-            #[cfg(feature = "liquid")]
-            Network::LiquidRegtest => 51401,
+            #[cfg(any(feature = "ocean", feature = "liquid"))]
+            Network::Ocean => 51000,
+            #[cfg(any(feature = "ocean", feature = "liquid"))]
+            Network::Gold => 51000,
+            #[cfg(any(feature = "ocean", feature = "liquid"))]
+            Network::OceanRegtest => 51401,
         };
         let default_http_port = match network_type {
             Network::Bitcoin => 3000,
             Network::Testnet => 3001,
             Network::Regtest => 3002,
 
-            #[cfg(feature = "liquid")]
-            Network::Liquid => 3000,
-            #[cfg(feature = "liquid")]
-            Network::LiquidRegtest => 3002,
+            #[cfg(any(feature = "ocean", feature = "liquid"))]
+            Network::Ocean => 3000,
+            #[cfg(any(feature = "ocean", feature = "liquid"))]
+            Network::Gold => 3000,
+            #[cfg(any(feature = "ocean", feature = "liquid"))]
+            Network::OceanRegtest => 3002,
         };
         let default_monitoring_port = match network_type {
             Network::Bitcoin => 4224,
             Network::Testnet => 14224,
             Network::Regtest => 24224,
 
-            #[cfg(feature = "liquid")]
-            Network::Liquid => 34224,
-            #[cfg(feature = "liquid")]
-            Network::LiquidRegtest => 44224,
+            #[cfg(any(feature = "ocean", feature = "liquid"))]
+            Network::Ocean => 34224,
+            #[cfg(any(feature = "ocean", feature = "liquid"))]
+            Network::Gold => 34224,
+            #[cfg(any(feature = "ocean", feature = "liquid"))]
+            Network::OceanRegtest => 44224,
         };
 
-        let daemon_rpc_addr: SocketAddr = m
+        let daemon_rpc_addrs: Vec<_> = m
             .value_of("daemon_rpc_addr")
             .unwrap_or(&format!("127.0.0.1:{}", default_daemon_port))
-            .parse()
-            .expect("invalid Bitcoind RPC address");
-        let electrum_rpc_addr: SocketAddr = m
+            .to_socket_addrs()
+            .expect("invalid Bitcoind RPC address")
+            .collect();
+        let daemon_rpc_addr : SocketAddr = daemon_rpc_addrs[0];
+
+        let electrum_rpc_addrs: Vec<_> = m
             .value_of("electrum_rpc_addr")
             .unwrap_or(&format!("127.0.0.1:{}", default_electrum_port))
-            .parse()
-            .expect("invalid Electrum RPC address");
-        let http_addr: SocketAddr = m
+            .to_socket_addrs()
+            .expect("invalid Electrum RPC address")
+            .collect();
+        let electrum_rpc_addr : SocketAddr = electrum_rpc_addrs[0];
+
+        let http_addrs: Vec<_> = m
             .value_of("http_addr")
             .unwrap_or(&format!("127.0.0.1:{}", default_http_port))
-            .parse()
-            .expect("invalid HTTP server address");
-        let monitoring_addr: SocketAddr = m
+            .to_socket_addrs()
+            .expect("invalid HTTP server address")
+            .collect();
+        let http_addr : SocketAddr = http_addrs[0];
+
+        let monitoring_addrs: Vec<_> = m
             .value_of("monitoring_addr")
             .unwrap_or(&format!("127.0.0.1:{}", default_monitoring_port))
-            .parse()
-            .expect("invalid Prometheus monitoring address");
+            .to_socket_addrs()
+            .expect("invalid Prometheus monitoring address")
+            .collect();
+        let monitoring_addr : SocketAddr = monitoring_addrs[0];
 
         let mut daemon_dir = m
             .value_of("daemon_dir")
@@ -256,10 +276,12 @@ impl Config {
             Network::Testnet => daemon_dir.push("testnet3"),
             Network::Regtest => daemon_dir.push("regtest"),
 
-            #[cfg(feature = "liquid")]
-            Network::Liquid => daemon_dir.push("liquidv1"),
-            #[cfg(feature = "liquid")]
-            Network::LiquidRegtest => daemon_dir.push("liquidregtest"),
+            #[cfg(any(feature = "ocean", feature = "liquid"))]
+            Network::Ocean => daemon_dir.push("ocean_main"),
+            #[cfg(any(feature = "ocean", feature = "liquid"))]
+            Network::Gold => daemon_dir.push("gold_main"),
+            #[cfg(any(feature = "ocean", feature = "liquid"))]
+            Network::OceanRegtest => daemon_dir.push("oceanregtest"),
         }
         let cookie = m.value_of("cookie").map(|s| s.to_owned());
 
@@ -292,11 +314,11 @@ impl Config {
             prevout_enabled: !m.is_present("disable_prevout"),
             cors: m.value_of("cors").map(|s| s.to_string()),
             precache_scripts: m.value_of("precache_scripts").map(|s| s.to_string()),
-            #[cfg(feature = "liquid")]
+            #[cfg(any(feature = "ocean", feature = "liquid"))]
             parent_network,
-            #[cfg(feature = "liquid")]
+            #[cfg(any(feature = "ocean", feature = "liquid"))]
             parent_genesis_hash,
-            #[cfg(feature = "liquid")]
+            #[cfg(any(feature = "ocean", feature = "liquid"))]
             asset_db_path,
         };
         eprintln!("{:?}", config);

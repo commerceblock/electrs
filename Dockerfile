@@ -1,21 +1,13 @@
 FROM rust:latest
 
-RUN apt-get update
-RUN apt-get install -y clang cmake
+RUN set -x \
+    && apt update \
+    && apt install -y clang cmake
 
-RUN cargo install electrs
+COPY . /usr/src/electrs-ocean
+WORKDIR /usr/src/electrs-ocean
 
-RUN adduser --disabled-login --system --shell /bin/false --uid 1000 user
+RUN set -x \
+    && /usr/local/cargo/bin/cargo run --features=ocean --release --bin electrs -- --help
 
-USER user
-WORKDIR /home/user
-
-# Electrum RPC
-EXPOSE 50001
-
-# Prometheus monitoring
-EXPOSE 4224
-
-STOPSIGNAL SIGINT
-
-CMD ["electrs", "-vvvv", "--timestamp"]
+ENTRYPOINT ["/usr/src/electrs-ocean/docker-entrypoint.sh"]

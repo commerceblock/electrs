@@ -1,17 +1,22 @@
-use bitcoin::consensus::encode::serialize;
-use bitcoin_hashes::hex::{FromHex, ToHex};
-use bitcoin_hashes::sha256d::Hash as Sha256dHash;
-use crypto::digest::Digest;
-use crypto::sha2::Sha256;
-use error_chain::ChainedError;
-use hex;
-use serde_json::{from_str, Value};
 use std::collections::HashMap;
 use std::io::{BufRead, BufReader, Write};
 use std::net::{Shutdown, SocketAddr, TcpListener, TcpStream};
 use std::sync::mpsc::{Sender, SyncSender, TrySendError};
 use std::sync::{Arc, Mutex};
 use std::thread;
+
+use bitcoin::hashes::hex::{FromHex, ToHex};
+use bitcoin::hashes::sha256d::Hash as Sha256dHash;
+use crypto::digest::Digest;
+use crypto::sha2::Sha256;
+use error_chain::ChainedError;
+use hex;
+use serde_json::{from_str, Value};
+
+#[cfg(not(any(feature = "ocean", feature = "liquid")))]
+use bitcoin::consensus::encode::serialize;
+#[cfg(any(feature = "ocean", feature = "liquid"))]
+use elements::encode::serialize;
 
 use crate::errors::*;
 use crate::metrics::{Gauge, HistogramOpts, HistogramVec, MetricOpts, Metrics};
@@ -220,7 +225,7 @@ impl Connection {
         Ok(status_hash)
     }
 
-    #[cfg(not(feature = "liquid"))]
+    #[cfg(not(any(feature = "ocean", feature = "liquid")))]
     fn blockchain_scripthash_get_balance(&self, params: &[Value]) -> Result<Value> {
         let script_hash = hash_from_value(params.get(0)).chain_err(|| "bad script_hash")?;
         let (chain_stats, mempool_stats) = self.query.stats(&script_hash[..]);
@@ -336,7 +341,7 @@ impl Connection {
             "blockchain.estimatefee" => self.blockchain_estimatefee(&params),
             "blockchain.headers.subscribe" => self.blockchain_headers_subscribe(),
             "blockchain.relayfee" => self.blockchain_relayfee(),
-            #[cfg(not(feature = "liquid"))]
+            #[cfg(not(any(feature = "ocean", feature = "liquid")))]
             "blockchain.scripthash.get_balance" => self.blockchain_scripthash_get_balance(&params),
             "blockchain.scripthash.get_history" => self.blockchain_scripthash_get_history(&params),
             "blockchain.scripthash.listunspent" => self.blockchain_scripthash_listunspent(&params),

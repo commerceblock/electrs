@@ -2,13 +2,13 @@ extern crate electrs;
 #[macro_use]
 extern crate log;
 
-#[cfg(not(feature = "liquid"))]
+#[cfg(not(any(feature = "ocean", feature = "liquid")))]
 fn main() {
     use std::collections::HashSet;
     use std::sync::Arc;
 
-    use bitcoin::blockdata::script::Script;
     use bitcoin::consensus::encode::deserialize;
+    use bitcoin::Script;
     use electrs::{
         chain::Transaction,
         config::Config,
@@ -138,5 +138,5 @@ fn main() {
     );
 }
 
-#[cfg(feature = "liquid")]
+#[cfg(any(feature = "ocean", feature = "liquid"))]
 fn main() {}
